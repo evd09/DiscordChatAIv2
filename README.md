@@ -41,7 +41,7 @@ A simple Discord bot powered by local Ollama models for chat interactions.
 
 1. Start the bot:
    ```bash
-   python your_bot_file.py
+   python bot.py
    ```
 
 2. Test by mentioning the bot in Discord: `@YourBotName hello`
