@@ -2,6 +2,7 @@ import discord
 import requests
 import json
 import os
+import datetime
 from dotenv import load_dotenv
 import random
 import re
@@ -32,6 +33,7 @@ SPOOKY_EMOJIS = ['💀', '👻', '🎃', '🦇', '🕷️', '🕸️', '🧟‍�
 THINKING_EMOJIS = ['🤔', '🧐', '💭', '💡', '🎯', '📚', '🔍', '💻', '📝']
 MISC_EMOJIS = ['🌈', '🎨', '🎭', '🎪', '🎡', '🎢', '🎠', '🌸', '🌺', '🌷', '🌹', '🍀']
 
+
 # Message history storage (you might want to use a proper database in production)
 message_history = {}  # {channel_id: [last_n_messages]}
 HISTORY_LENGTH = 10  # Number of messages to keep in history
@@ -39,7 +41,7 @@ HISTORY_LENGTH = 10  # Number of messages to keep in history
 def should_respond(message_content, bot_name):
     """
     Determine if the bot should respond to a message
-    """
+    """ 
     # Convert both to lowercase for case-insensitive matching
     content_lower = message_content.lower()
     bot_name_lower = bot_name.lower()
@@ -92,17 +94,30 @@ def analyze_message_context(message_content, response_text):
     
     if any(word in content for word in ['spooky', 'scary', 'halloween', 'ghost', 'dead', 'monster']):
         relevant_categories.append(SPOOKY_EMOJIS)
+
+    # If no relevant categories found, use a default set
     
     if not relevant_categories:
         relevant_categories = [HAPPY_EMOJIS, MISC_EMOJIS, PLAYFUL_EMOJIS]
     
     return relevant_categories
 
+
 def get_conversation_context(channel_id):
     """Get the recent conversation context from the channel"""
     if channel_id in message_history:
         return "\n".join([f"{msg['author']}: {msg['content']}" for msg in message_history[channel_id]])
     return ""
+
+
+def safe_log_conversation(user_message, bot_response):
+    """Safely log conversation with proper encoding handling"""
+    try:
+        with open('conversations.log', 'a', encoding='utf-8') as f:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(f"[{timestamp}]\nUser: {user_message}\nBot: {bot_response}\n\n")
+    except Exception as e:
+        print(f"Logging error: {e}")
 
 @client.event
 async def on_ready():
@@ -129,13 +144,15 @@ async def on_message(message):
     # Check if the bot should respond
     if should_respond(message.content, client.user.name) or client.user in message.mentions:
         try:
+            # Show typing indicator
+            async with message.channel.typing():
             # Get conversation context
-            context = get_conversation_context(channel_id)
+                context = get_conversation_context(channel_id)
             
             # Prepare prompt with context
-            prompt = f"Context:\n{context}\n\nCurrent message: {message.content}"
+            prompt = f"Context:\n{context}\n\nCurrent messAage: {message.content}"
             
-            # Generate response using Ollama API
+                # Generate response using Ollama API
             data = {
                 "model": model_name,
                 "prompt": prompt,
@@ -146,15 +163,14 @@ async def on_message(message):
             
             response_text = json.loads(response.text)['response']
             
-            # Log the conversation
-            with open('conversations.log', 'a') as f:
-                f.write(f"User: {message.content}\nBot: {response_text}\n")
+            # Log the conversation with safe encoding handling
+            safe_log_conversation(message.content, response_text)
 
             # Get contextually appropriate emoji categories
             relevant_categories = analyze_message_context(message.content, response_text)
             
             # Randomly select number of emojis (1-20)
-            num_reactions = random.randint(1, 20) # Random number of reactions, this is chaotic but that's the fun of it
+            num_reactions = random.randint(1, 20) # Random number of reactions, this is chaotic
             
             # If we have fewer categories than desired reactions, we can reuse categories
             if len(relevant_categories) < num_reactions:
@@ -169,7 +185,7 @@ async def on_message(message):
             
             # Add random emojis to the response text
             response_with_emoji = f"{response_text} {' '.join(random.sample(selected_emojis, min(2, len(selected_emojis))))}"
-            await message.channel.send(response_with_emoji)
+            await message.reply(response_with_emoji, mention_author=True)
 
             # Handle sticker requests
             if "sticker" in message.content.lower():
@@ -180,7 +196,7 @@ async def on_message(message):
         except Exception as e:
             print(f"Error: {e}")
             error_emojis = random.sample(SAD_EMOJIS + THINKING_EMOJIS, 2)
-            await message.channel.send(f"Something went wrong! {' '.join(error_emojis)}")
+            await message.reply(f"Something went wrong! {' '.join(error_emojis)}", mention_author=True)
 
 @client.event
 async def on_reaction_add(reaction, user):
