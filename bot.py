@@ -10,10 +10,11 @@ import re
 # Load environment variables from .env file
 load_dotenv()
 
+# Get the Discord bot token from environment variables
 TOKEN = os.getenv('DISCORD_TOKEN')
 print(f"Token loaded: {'Found token' if TOKEN else 'No token found'}")
 
-# Initialize Discord bot with more intents
+# Initialize Discord bot with necessary intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
@@ -23,101 +24,56 @@ client = discord.Client(intents=intents)
 ollama_url = "http://localhost:11434/api/generate"
 model_name = "hermes3"
 
-# Emoji collections
+# Emoji categories used for reactions
 HAPPY_EMOJIS = ['😊', '😄', '😃', '🥰', '😘', '😋', '😍', '🤗', '🌟', '✨', '💫', '⭐']
-SAD_EMOJIS = ['😢', '😭', '🥺', '😔', '😪', '💔', '😿', '🫂', '🥀']
+SAD_EMOJIS = ['😢', '😭', '🥺', '😔', '🚪', '💔', '😿', '🫂', '🦀']
 PLAYFUL_EMOJIS = ['😜', '🤪', '😝', '😋', '🤭', '🙈', '🙉', '🙊', '🐱', '🐰', '🦊', '🐼']
-COOL_EMOJIS = ['😎', '🕶️', '🔥', '💯', '🆒', '🤙', '👑', '💪', '✌️', '🎮', '🎯', '🎪']
-LOVE_EMOJIS = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🤍', '🖤', '💝', '💖', '💗', '💓']
-SPOOKY_EMOJIS = ['💀', '👻', '🎃', '🦇', '🕷️', '🕸️', '🧟‍♂️', '🧟‍♀️', '👺', '👹', '😈', '🤡']
+COOL_EMOJIS = ['😎', '👶️', '🔥', '💯', '🆒', '🤙', '👑', '💪', '✌️', '🎮', '🎯', '🎪']
+LOVE_EMOJIS = ['❤️', '🧡', '💛', '💚', '💙', '💜', '🧽', '🖤', '💝', '💖', '💗', '💓']
+SPOOKY_EMOJIS = ['💀', '👻', '🎃', '🦷', '🕷️', '🕸️', '🧟‍♂️', '🧟‍♀️', '👺', '👹', '😈', '🤡']
 THINKING_EMOJIS = ['🤔', '🧐', '💭', '💡', '🎯', '📚', '🔍', '💻', '📝']
 MISC_EMOJIS = ['🌈', '🎨', '🎭', '🎪', '🎡', '🎢', '🎠', '🌸', '🌺', '🌷', '🌹', '🍀']
 
+# Dictionary to store message history per channel
+message_history = {}
+HISTORY_LENGTH = 10
 
-# Message history storage (you might want to use a proper database in production)
-message_history = {}  # {channel_id: [last_n_messages]}
-HISTORY_LENGTH = 10  # Number of messages to keep in history
-
+# Helper: decide if bot should respond to message
 def should_respond(message_content, bot_name):
-    """
-    Determine if the bot should respond to a message
-    """ 
-    # Convert both to lowercase for case-insensitive matching
-    content_lower = message_content.lower()
-    bot_name_lower = bot_name.lower()
+    keywords = ["hey", "hello", "yo", "chat", bot_name.lower()]
+    return any(kw in message_content.lower() for kw in keywords)
 
-    # Direct mention check (already handled in main function)
-    if f"<@{client.user.id}>" in message_content:
-        return True
-    
-    # Check if the bot's name is mentioned
-    if bot_name_lower in content_lower:
-        return True
-    
-    # Check for question patterns
-    question_patterns = [
-        r'\?$',  # Ends with question mark
-        r'^(what|who|where|when|why|how|can|could|would|should|is|are|do|does|did)',  # Starts with question word
-    ]
-    
-    for pattern in question_patterns:
-        if re.search(pattern, content_lower):
-            return random.random() < 0.5  # 50% chance to respond to questions
-    
-    # Random chance to respond to messages (10%)
-    return random.random() < 0.1
-
-def analyze_message_context(message_content, response_text):
-    """Analyze message context to determine appropriate emoji categories"""
-    content = message_content.lower() + " " + response_text.lower()
-    
-    relevant_categories = []
-    
-    # Check for different emotional contexts
-    if any(word in content for word in ['happy', 'great', 'awesome', 'wonderful', 'yay', 'good']):
-        relevant_categories.append(HAPPY_EMOJIS)
-    
-    if any(word in content for word in ['sad', 'sorry', 'unfortunate', 'bad', 'wrong', 'error']):
-        relevant_categories.append(SAD_EMOJIS)
-    
-    if any(word in content for word in ['love', 'heart', 'care', 'sweet', 'cute']):
-        relevant_categories.append(LOVE_EMOJIS)
-    
-    if any(word in content for word in ['think', 'question', 'how', 'what', 'why', 'learn', 'study']):
-        relevant_categories.append(THINKING_EMOJIS)
-    
-    if any(word in content for word in ['fun', 'play', 'game', 'lol', 'haha', 'joke']):
-        relevant_categories.append(PLAYFUL_EMOJIS)
-    
-    if any(word in content for word in ['cool', 'awesome', 'nice', 'amazing', 'wow']):
-        relevant_categories.append(COOL_EMOJIS)
-    
-    if any(word in content for word in ['spooky', 'scary', 'halloween', 'ghost', 'dead', 'monster']):
-        relevant_categories.append(SPOOKY_EMOJIS)
-
-    # If no relevant categories found, use a default set
-    
-    if not relevant_categories:
-        relevant_categories = [HAPPY_EMOJIS, MISC_EMOJIS, PLAYFUL_EMOJIS]
-    
-    return relevant_categories
-
-
+# Helper: build a context string from message history
 def get_conversation_context(channel_id):
-    """Get the recent conversation context from the channel"""
-    if channel_id in message_history:
-        return "\n".join([f"{msg['author']}: {msg['content']}" for msg in message_history[channel_id]])
-    return ""
+    history = message_history.get(channel_id, [])
+    return "\n".join([f"{m['author']}: {m['content']}" for m in history])
 
+# Helper: log prompt/response for debugging
+def safe_log_conversation(prompt, response):
+    print("Prompt:", prompt)
+    print("Response:", response)
 
-def safe_log_conversation(user_message, bot_response):
-    """Safely log conversation with proper encoding handling"""
-    try:
-        with open('conversations.log', 'a', encoding='utf-8') as f:
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"[{timestamp}]\nUser: {user_message}\nBot: {bot_response}\n\n")
-    except Exception as e:
-        print(f"Logging error: {e}")
+# Helper: figure out emoji categories to respond with
+def analyze_message_context(prompt, response):
+    categories = []
+    joined = f"{prompt} {response}".lower()
+    if any(word in joined for word in ["happy", "joy", "excited"]):
+        categories.append(HAPPY_EMOJIS)
+    if any(word in joined for word in ["sad", "cry", "depressed"]):
+        categories.append(SAD_EMOJIS)
+    if any(word in joined for word in ["silly", "funny", "play"]):
+        categories.append(PLAYFUL_EMOJIS)
+    if any(word in joined for word in ["cool", "awesome", "epic"]):
+        categories.append(COOL_EMOJIS)
+    if any(word in joined for word in ["love", "heart"]):
+        categories.append(LOVE_EMOJIS)
+    if any(word in joined for word in ["ghost", "spooky", "halloween"]):
+        categories.append(SPOOKY_EMOJIS)
+    if any(word in joined for word in ["think", "why", "how"]):
+        categories.append(THINKING_EMOJIS)
+    if not categories:
+        categories.append(MISC_EMOJIS)
+    return categories
 
 @client.event
 async def on_ready():
@@ -128,71 +84,52 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    # Update message history
     channel_id = message.channel.id
     if channel_id not in message_history:
         message_history[channel_id] = []
-    
     message_history[channel_id].append({
         'author': message.author.name,
         'content': message.content
     })
-    
-    # Keep only the last N messages
     message_history[channel_id] = message_history[channel_id][-HISTORY_LENGTH:]
 
-    # Check if the bot should respond
     if should_respond(message.content, client.user.name) or client.user in message.mentions:
         try:
-            # Show typing indicator
             async with message.channel.typing():
-            # Get conversation context
                 context = get_conversation_context(channel_id)
-            
-            # Prepare prompt with context
-            prompt = f"Context:\n{context}\n\nCurrent messAage: {message.content}"
-            
-                # Generate response using Ollama API
-            data = {
-                "model": model_name,
-                "prompt": prompt,
-                "stream": False
-            }
-            response = requests.post(ollama_url, headers={"Content-Type": "application/json"}, data=json.dumps(data))
-            response.raise_for_status()
-            
-            response_text = json.loads(response.text)['response']
-            
-            # Log the conversation with safe encoding handling
-            safe_log_conversation(message.content, response_text)
+                prompt = f"Context:\n{context}\n\nCurrent message: {message.content}"
+                data = {"model": model_name, "prompt": prompt, "stream": False}
 
-            # Get contextually appropriate emoji categories
-            relevant_categories = analyze_message_context(message.content, response_text)
-            
-            # Randomly select number of emojis (1-20)
-            num_reactions = random.randint(1, 20) # Random number of reactions, this is chaotic
-            
-            # If we have fewer categories than desired reactions, we can reuse categories
-            if len(relevant_categories) < num_reactions:
-                relevant_categories = relevant_categories * num_reactions
-            
-            # Select random emojis from relevant categories
-            selected_emojis = [random.choice(category) for category in random.sample(relevant_categories, num_reactions)]
-            
-            # Add reactions
-            for emoji in selected_emojis:
-                await message.add_reaction(emoji)
-            
-            # Add random emojis to the response text
-            response_with_emoji = f"{response_text} {' '.join(random.sample(selected_emojis, min(2, len(selected_emojis))))}"
-            await message.reply(response_with_emoji, mention_author=True)
+                response = requests.post(ollama_url, headers={"Content-Type": "application/json"}, data=json.dumps(data))
+                response.raise_for_status()
+                response_text = json.loads(response.text)['response']
 
-            # Handle sticker requests
-            if "sticker" in message.content.lower():
-                if message.guild and message.guild.stickers:
-                    sticker = random.choice(message.guild.stickers)
-                    await message.channel.send(stickers=[sticker])
-            
+                safe_log_conversation(message.content, response_text)
+
+                relevant_categories = analyze_message_context(message.content, response_text)
+                num_reactions = random.randint(1, 20)
+                if len(relevant_categories) < num_reactions:
+                    relevant_categories *= num_reactions
+                selected_emojis = [random.choice(category) for category in random.sample(relevant_categories, num_reactions)]
+                for emoji in selected_emojis:
+                    await message.add_reaction(emoji)
+
+                response_with_emoji = f"{response_text} {' '.join(random.sample(selected_emojis, min(2, len(selected_emojis))))}"
+
+                if len(response_with_emoji) > 2000:
+                    thread_title = f"Response to {message.author.name}"
+                    thread = await message.create_thread(name=thread_title, auto_archive_duration=60)
+                    chunks = [response_with_emoji[i:i+1900] for i in range(0, len(response_with_emoji), 1900)]
+                    for chunk in chunks:
+                        await thread.send(chunk)
+                else:
+                    await message.reply(response_with_emoji, mention_author=True)
+
+                if "sticker" in message.content.lower():
+                    if message.guild and message.guild.stickers:
+                        sticker = random.choice(message.guild.stickers)
+                        await message.channel.send(stickers=[sticker])
+
         except Exception as e:
             print(f"Error: {e}")
             error_emojis = random.sample(SAD_EMOJIS + THINKING_EMOJIS, 2)
