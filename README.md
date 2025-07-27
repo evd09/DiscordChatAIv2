@@ -57,8 +57,6 @@ python bot.py
 - Try slash commands like /help, /setcharacter, /trivia, etc. in your Discord server.
 - NSFW commands/personas require an NSFW channel.
 
-## Running the Bot
-
 ### ⚠️ Notes & Troubleshooting
 - Slash commands can take 1-5 minutes to appear the first time (Discord caches them).
 - After changing GUILD_ID, restart the bot for commands to update.
