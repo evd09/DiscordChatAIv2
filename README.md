@@ -20,7 +20,7 @@ The new Discord Ollama bot is a **feature-rich, customizable AI assistant** that
 ### 1. Clone the Repository
 
 ```bash 
-git clone https://github.com/yourusername/discord-ollama-bot.git
+git clone https://github.com/evd09/discord-ollama-bot.git
 cd discord-ollama-bot
 ```
 
