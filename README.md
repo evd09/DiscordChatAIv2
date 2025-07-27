@@ -76,7 +76,7 @@ Running locally:
 Ctrl+C
 ```
 ---
-## Key Differences & Improvements
+## Key Differences & Improvements from [gnukeith/DiscordChatAI](https://github.com/gnukeith/DiscordChatAI)
 
 ### 1. **Modern Discord API Usage**
 - **Old:** Uses `discord.Client` and classic on_message event handling.
