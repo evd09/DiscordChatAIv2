@@ -104,9 +104,8 @@ sudo docker compose up -d
 
 ## ✅ Commands & Triggers
 🧠 AI Chat
-
-    Mention the bot in a message to trigger a reply:
-        @BotName what do you think of pineapples on pizza?
+- Mention the bot in a message to trigger a reply:
+  - @BotName what do you think of pineapples on pizza?
 
 ## 🤖 Nebula AI Bot — Command Reference
 
