@@ -23,7 +23,6 @@ A powerful, AI-enhanced Discord bot that:
 ---
 
 ## 📦 File Structure
-
 ```text
 Nebula/
 │
@@ -45,7 +44,7 @@ Nebula/
 │   └── utils.py          # Helper functions used by multiple parts of your bot.
 │   └── db.py             # Handles connecting to and working with your bot’s database.
 └── README.md             # You’re here! Main documentation and run instructions
-
+```
 🐳 Docker Deployment for Nebula
 1. Create directory for config files
 ```
@@ -78,14 +77,11 @@ services:
     image: ghcr.io/evd09/nebulaai:latest   
     container_name: NebulaAI
     restart: unless-stopped
-
     env_file:
       - .env         # Loads your Discord token and other environment variables
-
     volumes:
       - ./logs:/app/logs    # Mount local logs folder to container
       - ./data:/app/data    # Mount local data folder to container
-
     logging:
       driver: "json-file"
       options:
@@ -93,24 +89,25 @@ services:
         max-file: "5"
 ```
 
-Start the bot:
+### Start the bot:
 ```
 sudo docker compose pull
 sudo docker compose up -d
 ```
 
-To upgrade:
+### To upgrade:
 ```
 sudo docker compose down
 sudo docker compose pull
 sudo docker compose up -d
 ```
 
-✅ Commands & Triggers
+## ✅ Commands & Triggers
 🧠 AI Chat
 
     Mention the bot in a message to trigger a reply:
         @BotName what do you think of pineapples on pizza?
+
 ## 🤖 Nebula AI Bot — Command Reference
 
 | Command                   | Description                                   |
@@ -125,7 +122,7 @@ sudo docker compose up -d
 | `/help`                   | Show this help table                      	|
 
 
-📧 Feedback / Suggestions
+## 📧 Feedback / Suggestions
 
 Have ideas or issues? Open a GitHub issue or ping me in your server! ✨
 
