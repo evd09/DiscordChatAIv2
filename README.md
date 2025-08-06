@@ -1,195 +1,132 @@
-# Discord AI Bot Setup Guide with Ollama
+# 🤖 Discord AI Meme Bot
 
-## Summary
+A powerful, AI-enhanced Discord bot that:
+- Chats using Ollama models (like Hermes)
+- Responds with emoji reactions based on sentiment
+- Greets new users with AI-generated jokes
+- Auto-replies in threads for long responses
+- Logs activity with rotating logs
+- Dockerized for easy deployment
 
-The new Discord Ollama bot is a **feature-rich, customizable AI assistant** that brings powerful LLM chat, mini-games, leaderboards, emoji magic, and much more to your server—with full slash command support and safe NSFW controls.
+---
 
-## Prerequisites
+## 🚀 Features
 
-- **Python 3.11+** (if not using Docker)
-- **A Discord bot token**  
-  Get your `DISCORD_TOKEN` from the [Discord Developer Portal](https://discord.com/developers/applications).
-- **Your Discord server's ID**  
-  Find your `GUILD_ID` [here](https://discord.id/).
-- **[Ollama](https://ollama.com/) LLM server** running and accessible to the bot (local or remote)
-- **Docker** (optional, but recommended for easy setup)
+| Feature                        | Description |
+|-------------------------------|-------------|
+| 🧠 AI Chat                    | Uses Ollama + Hermes (or custom model) for conversational replies |
+| 😄 Emoji Reactions            | Responds with mood-based emojis using sentiment analysis |
+| 💬 Contextual Memory          | Remembers recent messages per channel for better AI replies |
+| 🧵 Auto-Threading             | Long replies spawn a thread to avoid message limit errors |
+| 🐳 Docker Support             | Easily containerized for deployment via Docker Compose |
 
+---
 
-## 🚀 Setup & Usage
+## 📦 File Structure
 
-### 1. Clone the Repository
+```text
+Nebula/
+│
+├── bot.py                # Main bot launcher and root command logic
+├── requirements.txt      # List of Python dependencies for pip install
+├── Dockerfile            # Build instructions for Docker (single-container)
+├── docker-compose.yml    # Docker Compose for multi-container setup
+├── .env                  # Main environment variables (bot token, model, guild ID)
+├── data/ 
+│   └── botdata.db        # A database file used to store persistent data.
+├── logs/                 
+│   └── bot.log           # The main log file for your bot.
+├── cogs/             
+│   ├── character.py      # Handles all "character/personality" commands and logic.
+│   ├── fun.py            # Contains fun commands like jokes, 8ball, memes, etc.
+│   └── trivia.py         # Commands and logic for running trivia games.
+├── helpers/              
+│   ├── personalities.py  # The definitions and descriptions for each AI personality/character.
+│   └── utils.py          # Helper functions used by multiple parts of your bot.
+│   └── db.py             # Handles connecting to and working with your bot’s database.
+└── README.md             # You’re here! Main documentation and run instructions
 
-```bash 
-git clone https://github.com/evd09/discord-ollama-bot.git
-cd discord-ollama-bot
+🐳 Docker Deployment for Nebula
+1. Create directory for config files
+```
+mkdir NebulaAI
+cd NebulaAI
 ```
 
-### 2. Configure Environment
-Create a .env file in the project root:
-```env
-DISCORD_TOKEN=your-discord-bot-token
-OLLAMA_URL=http://localhost:11434/api/generate   # Or your remote Ollama server
-OLLAMA_MODEL=hermes3                             # Or your Ollama model name
-GUILD_ID=123456789012345678                      # Your Discord server's ID
+2. Create Required Folders and .env File
 ```
-### 3. Run with Docker (Recommended)
-Build and start the bot:
-```bash
-docker compose build --no-cache
-docker compose up
+mkdir sounds data logs
+mkdir -p sounds/entrances
+mkdir -p sounds/beeps
+nano .env
 ```
 
-### 4. Or Run Locally (Python)
-Make sure you have Python 3.11+ installed.
-Install dependencies:
-```bash
-pip install -r requirements.txt
 ```
+DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN
+OLLAMA_URL=http://localhost:11434/api/generate
+OLLAMA_MODEL=hermes3
+```
+
+3. Run with Docker CLI
+```
+sudo docker pull ghcr.io/evd09/memebot:latest
+```
+4. Docker Compose (Recommended for Easy Updates)
+```
+services:
+  discord-bot:
+    image: ghcr.io/evd09/nebulaai:latest   
+    container_name: NebulaAI
+    restart: unless-stopped
+
+    env_file:
+      - .env         # Loads your Discord token and other environment variables
+
+    volumes:
+      - ./logs:/app/logs    # Mount local logs folder to container
+      - ./data:/app/data    # Mount local data folder to container
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+```
+
 Start the bot:
-```bash
-python bot.py
 ```
-### 5. Invite the Bot to Your Discord Server
-- Use your app’s OAuth2 URL with the bot and applications.commands scopes.
-- Add the bot to your server via the Discord Developer Portal.
-
-### 6. Use the Bot
-- Try slash commands like /help, /setcharacter, /trivia, etc. in your Discord server.
-- NSFW commands/personas require an NSFW channel.
-
-### ⚠️ Notes & Troubleshooting
-- Slash commands can take 1-5 minutes to appear the first time (Discord caches them).
-- After changing GUILD_ID, restart the bot for commands to update.
-- All settings (scores, prompts) are stored locally. If using Docker, persist volumes as needed.
-- For best performance, run Ollama LLM server on the same local network or a fast connection.
-
-🛑 Stopping the Bot
-
-With Docker:
-```bash
-docker compose down
+sudo docker compose pull
+sudo docker compose up -d
 ```
-Running locally:
-```bash
-Ctrl+C
+
+To upgrade:
 ```
----
-### Inspired by [gnukeith/DiscordChatAI](https://github.com/gnukeith/DiscordChatAI)
-## Key Differences & Improvements 
+sudo docker compose down
+sudo docker compose pull
+sudo docker compose up -d
+```
 
-### 1. **Modern Discord API Usage**
-- **Old:** Uses `discord.Client` and classic on_message event handling.
-- **New:** Uses `discord.ext.commands.Bot` and full support for **slash commands** (Discord application commands), which are now Discord’s preferred method for bots.
+✅ Commands & Triggers
+🧠 AI Chat
 
----
+    Mention the bot in a message to trigger a reply:
+        @BotName what do you think of pineapples on pizza?
+## 🤖 Nebula AI Bot — Command Reference
 
-### 2. **Contextual Memory**
-- **Old:** Maintains a rolling history per channel for response context, but not per-user.
-- **New:** Maintains **per-channel and per-user conversation history** (for better context and future support of persistent memory, Q&A recall, and AI character switching).
+| Command                   | Description                                   |
+|---------------------------|-----------------------------------------------|
+| `/character` 				| Set your AI character/persona style           |
+| `/8ball <question>`       | Magic 8-ball answers your yes/no question 	|
+| `/fortune`        	    | Receive a random fortune!   					|
+| `/roast`   				| Get a roast, or roast someone else!         	|
+| `/trivia`                 | Play a multiple-choice trivia game            |
+| `/nsfwtrivia`             | Play a NSFW (adult) trivia game        		|
+| `/trivialeaderboard`      | Show the top and bottom trivia performers 	|
+| `/help`                   | Show this help table                      	|
 
----
 
-### 3. **Dynamic Prompt Control**
-- **Old:** Hardcoded prompt, always uses a simple "Context:\n..." for every LLM request.
-- **New:** Lets server admins and users:
-  - `/setprompt <text>` — Set the current system prompt
-  - `/showprompt` — See current system prompt
-  - `/resetprompt` — Revert to default prompt
-  - **Prompt changes persist** across bot restarts.
+📧 Feedback / Suggestions
 
----
+Have ideas or issues? Open a GitHub issue or ping me in your server! ✨
 
-### 4. **AI Persona/Character Switching**
-- **Old:** No character/persona system—only a single default bot “voice.”
-- **New:** **Multiple built-in AI personas**, including:
-  - SFW: meme, wise sage, therapist, Shakespeare, anime waifu, etc.
-  - **NSFW characters:** (sexy nurse, dom, etc.) only available in NSFW channels.
-  - `/setcharacter` lets each user pick their own AI “character” for DMs and @mentions.
-  - `/mycharacter` shows your current persona.
 
----
-
-### 5. **Mini-Games & Fun**
-- **Old:** None.
-- **New:** **Mini-games with leaderboards:**
-  - `/trivia` — General trivia, with answer buttons, scoring, and leaderboard
-  - `/nsfwtrivia` — Urban Dictionary trivia, only in NSFW channels
-  - `/trivialeaderboard` — See who’s best/worst at trivia
-  - `/8ball <question>` — Magic 8-ball
-  - `/roll` — Dice roller
-
----
-
-### 6. **Leaderboards & Scoring**
-- **Old:** None.
-- **New:** Persistent trivia stats saved to disk (per-user: correct, wrong, win rate).
-  - Top 5 and Bottom 5 users shown via `/trivialeaderboard`.
-
----
-
-### 7. **NSFW Command and Persona Safety**
-- **Old:** No safety checks; no support for NSFW content.
-- **New:** NSFW commands and personas **require** Discord NSFW channels for usage.
-  - Protects users and follows Discord guidelines.
-
----
-
-### 8. **Emoji Reactions & Sentiment**
-- **Old:** Chaotic, sometimes 1–20 random emoji reactions, contextually selected, but no extensible emoji handling.
-- **New:** Smarter emoji selection with sentiment analysis, emoji library, and consistent reactions (2 per message).
-
----
-
-### 9. **Slash Command Help & User Guidance**
-- **Old:** No `/help` command.
-- **New:** `/help` command lists all features, including mini-games and persona switching, and clarifies which features are NSFW.
-
----
-
-### 10. **Stability & Maintainability**
-- **Old:** Monolithic, all logic in one script, manual request handling.
-- **New:**
-  - Modular, modern code with clear function separation
-  - Use of `aiohttp` for async HTTP calls (faster and more scalable)
-  - **Logging** for debug and info
-  - Conversation and score logs written to disk
-  - Uses `.env` for configuration, not hardcoded
-
----
-
-### 11. **Docker & Deployment**
-- **Old:** No explicit Docker support.
-- **New:** Includes:
-  - `Dockerfile`
-  - `docker-compose.yml`
-  - Volume for persistent logs
-  - Easy local or containerized deployment
-
----
-
-### 12. **Extensible for Future Features**
-- Prompt history with undo/voting (planned)
-- Per-user long-term memory (planned)
-- More mini-games and integrations
-
----
-
-## Sample Table of New Commands
-
-| Command               | Description                                      |
-|:----------------------|:-------------------------------------------------|
-| `/setprompt <text>`   | Set a custom system prompt for the AI            |
-| `/showprompt`         | Show the current prompt                          |
-| `/resetprompt`        | Reset to default prompt                          |
-| `/setcharacter`       | Pick your own AI persona                         |
-| `/mycharacter`        | Show your current persona                        |
-| `/help`               | Show all bot commands and character list         |
-| `/trivia`             | Play SFW trivia game                             |
-| `/nsfwtrivia`         | Play NSFW Urban Dictionary trivia                |
-| `/trivialeaderboard`  | Show trivia stats/leaderboard                    |
-| `/8ball <question>`   | Magic 8-ball prediction                          |
-| `/roll`               | Roll a dice                                      |
-
----
-
-**Ready for the next level of Discord AI fun!**
